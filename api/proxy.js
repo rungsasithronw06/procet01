@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import express from "express";
 
 const RESOURCES = {
   north: "1184397a-7abf-4f5a-a528-5b74861c134c",
@@ -12,6 +13,9 @@ const RESOURCES = {
 
 // Cache ข้อมูลที่ดึงสำเร็จไว้ใน memory ของ serverless instance เพื่อลดการเรียก API ซ้ำ
 const memoryCache = Object.create(null);
+
+// สร้างแอป Express เพื่อรับคำขอจากหน้าเว็บ
+const app = express();
 
 // อ่านข้อมูลสำรองจาก backup.json เมื่อ data.go.th ใช้งานไม่ได้
 async function readBackup() {
@@ -47,25 +51,41 @@ async function loadResource(resourceId, backup) {
 }
 
 // รวมข้อมูลสวนทั้ง 5 ภาคและสถิติผู้เข้าชมให้หน้าเว็บเรียกครั้งเดียว
-export default async function handler(req, res) {
+app.use(async (req, res) => {
+  // อ่าน resourceId จาก URL ที่หน้าเว็บส่งมา
   const requestedId = req.query && req.query.resourceId;
+  // อ่านไฟล์สำรองเตรียมไว้ เผื่อ API หลักใช้งานไม่ได้
   const backup = await readBackup();
+  // ถ้าขอ resource เดียว ให้โหลดเฉพาะตัวนั้น
+  // ถ้าขอ all ให้โหลดข้อมูลสวนห้าภาคและข้อมูลผู้เข้าชม
   const ids = requestedId && requestedId !== "all"
     ? [requestedId]
     : [RESOURCES.north, RESOURCES.central, RESOURCES.northeast, RESOURCES.south, RESOURCES.west, RESOURCES.visitors];
+  // เตรียมกล่องคำตอบที่จะแจกกลับไปให้หน้าเว็บ
   const response = { resources: {}, sources: {}, resourceIds: RESOURCES };
+  // จำไว้ว่ามีชุดข้อมูลใดดึงจาก API ไม่สำเร็จหรือไม่
   let hasFailure = false;
+  // เดินผ่าน resource ทีละตัวเพื่อควบคุมลำดับและ fallback ได้ชัดเจน
   for (let index = 0; index < ids.length; index += 1) {
     try {
+      // ขอข้อมูลจาก API หรือ cache หรือ backup ตามลำดับ
       const result = await loadResource(ids[index], backup);
+      // เก็บแถวข้อมูลของ resource นี้ไว้ในคำตอบ
       response.resources[ids[index]] = result.records;
+      // บอกหน้าเว็บว่าข้อมูลมาจาก API, cache หรือ backup
       response.sources[ids[index]] = result.source;
     } catch (error) {
+      // ถ้าทุกทางล้มเหลว ให้หน้าเว็บยังตอบกลับได้ด้วยรายการว่าง
       hasFailure = true;
       response.resources[ids[index]] = [];
       response.sources[ids[index]] = "unavailable";
     }
   }
+  // ใส่ข้อความเตือนเมื่อมีบางชุดข้อมูลไม่ได้มาจาก API สด
   response.warning = hasFailure ? "บางชุดข้อมูลใช้ cache หรือ backup" : "";
+  // ส่งคำตอบกลับในรูปแบบ JSON
   return res.status(200).json(response);
-}
+});
+
+// ส่งแอป Express ให้ Vercel ใช้เป็น Serverless Function
+export default app;
