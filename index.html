@@ -2,9 +2,398 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>Museum Finder</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@300;400;500;600;700&family=Google+Sans:opsz,wght@17..18,400;17..18,500;17..18,600;17..18,700&family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <title>Thai Botanical Atlas | สวนพฤกษศาสตร์ไทย</title>
+  <style>
+    :root { --dark: #426700; --green: #74a436; --red: #c82021; --cream: #f2efe6; --white: #fffdf7; --shadow: 0 16px 38px rgba(66, 103, 0, .14); --soft-shadow: 0 5px 15px rgba(66, 103, 0, .12); }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; color: var(--dark); background: var(--cream); font-family: "Bai Jamjuree", sans-serif; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    .site-header { width: min(1320px, calc(100% - 40px)); margin: 26px auto 0; padding: 20px 28px; background: var(--white); border: 2px solid var(--green); border-radius: 18px 18px 0 0; box-shadow: var(--shadow); }
+    .brand-row { display: flex; align-items: center; justify-content: space-between; gap: 22px; }
+    .brand { display: flex; align-items: center; gap: 13px; color: var(--dark); }
+    .brand-mark { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50% 50% 50% 8px; background: var(--red); color: var(--cream); font: 700 25px "Kanit", sans-serif; transform: rotate(-8deg); }
+    .brand h1 { margin: 0; color: var(--dark); font: 600 clamp(20px, 3vw, 30px)/1.1 "Kanit", sans-serif; }
+    .brand p { margin: 4px 0 0; color: var(--red); font-size: 12px; letter-spacing: 1.5px; }
+    .header-note { color: var(--red); font-size: 14px; font-weight: 600; text-align: right; }
+    main { width: min(1320px, calc(100% - 40px)); margin: 0 auto 54px; }
+    .layout { display: grid; grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); gap: 22px; align-items: start; }
+    .panel { background: var(--green); border-radius: 0 0 18px 18px; box-shadow: var(--shadow); }
+    .panel-inner { padding: 22px; }
+    .section-label { display: flex; align-items: center; gap: 8px; margin: 0 0 13px; color: var(--cream); font: 600 16px "Kanit", sans-serif; }
+    .section-label::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--red); }
+    .search-wrap { position: relative; }
+    .search-wrap input, .field select { width: 100%; min-height: 48px; padding: 11px 16px; color: var(--dark); background: var(--cream); border: 0; border-radius: 28px; outline: 0; box-shadow: var(--soft-shadow); }
+    .search-wrap input { padding-right: 48px; }
+    .search-icon { position: absolute; top: 13px; right: 17px; color: var(--red); font-size: 20px; pointer-events: none; }
+    .suggestions { position: absolute; z-index: 5; top: 55px; right: 0; left: 0; display: none; overflow: hidden; background: var(--cream); border-radius: 14px; box-shadow: var(--shadow); }
+    .suggestions.is-visible { display: block; }
+    .suggestion { display: block; width: 100%; padding: 11px 15px; color: var(--red); text-align: left; background: transparent; border: 0; border-bottom: 1px solid rgba(66, 103, 0, .12); }
+    .suggestion:hover { background: #e6e0d2; }
+    .field { margin-top: 16px; }
+    .field label { display: block; margin-bottom: 6px; color: var(--cream); font-size: 13px; }
+    .field select { min-height: 42px; padding: 8px 13px; font-size: 14px; }
+    .primary-button, .clear-button { width: 100%; min-height: 45px; margin-top: 18px; border: 2px solid var(--red); border-radius: 25px; font-weight: 700; }
+    .primary-button { color: var(--cream); background: var(--red); }
+    .primary-button:hover, .clear-button:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(200, 32, 33, .24); }
+    .clear-button { margin-top: 14px; color: var(--red); background: var(--cream); }
+    .map-block { margin: 18px 0 0; padding: 14px; background: var(--cream); border-radius: 14px; box-shadow: var(--soft-shadow); }
+    .map-art { display: grid; place-items: center; min-height: 165px; border: 2px dashed #bfc2b6; border-radius: 10px; background: #d9d9d4; color: #73776c; text-align: center; }
+    .map-art strong { display: block; font: 600 24px "Kanit", sans-serif; }
+    .map-art span { display: block; margin-top: 3px; font-size: 12px; }
+    .map-block .clear-button { margin-top: 12px; }
+    .right-panel { min-width: 0; padding: 16px; background: var(--green); border-radius: 0 0 18px 18px; box-shadow: var(--shadow); }
+    .feature { position: relative; overflow: hidden; background: var(--cream); border-radius: 14px; box-shadow: var(--soft-shadow); }
+    .feature-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; color: var(--red); font: 600 17px "Kanit", sans-serif; }
+    .slide { display: none; padding: 0 14px 14px; }
+    .slide.active { display: block; animation: fade-in .45s ease; }
+    .image-slot { display: grid; place-items: center; min-height: 250px; border: 2px dashed #bfc2b6; border-radius: 10px; background: #dbdbd6; color: #74776d; text-align: center; }
+    .image-slot strong { display: block; font: 600 20px "Kanit", sans-serif; }
+    .image-slot span { display: block; margin-top: 3px; font-size: 12px; }
+    .slide-caption { display: flex; justify-content: space-between; gap: 12px; padding: 12px 3px 0; color: var(--red); }
+    .slide-caption strong { font: 600 19px "Kanit", sans-serif; }
+    .slide-caption span { font-size: 13px; }
+    .dots { display: flex; justify-content: center; gap: 7px; padding: 12px 0 1px; }
+    .dot { width: 9px; height: 9px; padding: 0; border: 0; border-radius: 50%; background: #b9b9ad; }
+    .dot.active { background: var(--red); }
+    .results-area { margin-top: 15px; padding: 16px; background: var(--cream); border-radius: 14px; box-shadow: var(--soft-shadow); }
+    .results-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; color: var(--red); }
+    .results-heading h2 { margin: 0; font: 600 19px "Kanit", sans-serif; }
+    .results-heading span { font-size: 13px; }
+    .result-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+    .result-card { overflow: hidden; padding: 8px; color: var(--cream); background: var(--dark); border-radius: 12px; box-shadow: var(--soft-shadow); transition: transform .22s ease, box-shadow .22s ease; }
+    .result-card:hover { transform: translateY(-8px); box-shadow: 0 17px 24px rgba(66, 103, 0, .25); }
+    .result-card .image-slot { min-height: 125px; border: 2px dashed rgba(242, 239, 230, .65); background: #708153; color: var(--cream); }
+    .result-card .image-slot strong { font-size: 15px; }
+    .result-info { padding: 9px 4px 3px; }
+    .result-info h3 { overflow: hidden; margin: 0 0 3px; color: var(--cream); font: 500 16px/1.3 "Kanit", sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+    .result-info p { margin: 0; color: #d8e2c7; font-size: 12px; }
+    .empty { grid-column: 1 / -1; padding: 35px 15px; color: var(--red); text-align: center; }
+    .modal { position: fixed; z-index: 20; inset: 0; display: none; place-items: center; padding: 20px; background: rgba(35, 48, 20, .58); }
+    .modal.is-open { display: grid; }
+    .detail-card { position: relative; width: min(640px, 100%); max-height: 90vh; overflow: auto; padding: 18px; background: var(--cream); border: 5px solid var(--green); border-radius: 20px; box-shadow: 0 24px 70px rgba(0, 0, 0, .25); }
+    .close-modal { position: absolute; z-index: 2; top: 12px; right: 12px; width: 36px; height: 36px; border: 0; border-radius: 50%; color: var(--cream); background: var(--red); font-size: 22px; line-height: 1; }
+    .video-slot { display: grid; place-items: center; min-height: 240px; border-radius: 12px; background: #6b6b61; color: var(--cream); text-align: center; }
+    .play-icon { display: grid; place-items: center; width: 56px; height: 56px; margin: auto; border: 2px solid var(--cream); border-radius: 50%; font-size: 23px; }
+    .detail-card h2 { margin: 16px 0 3px; color: var(--red); font: 600 26px "Kanit", sans-serif; }
+    .detail-card > p { margin: 0 0 14px; color: var(--dark); }
+    .detail-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+    .detail-metric { padding: 12px 8px; color: var(--dark); background: var(--white); border: 1px solid var(--green); border-radius: 10px; text-align: center; }
+    .detail-metric span { display: block; font-size: 11px; }
+    .detail-metric strong { display: block; margin-top: 4px; color: var(--red); font: 600 16px "Kanit", sans-serif; }
+    #status, #sourceStatus { color: var(--red); font-size: 12px; }
+    @keyframes fade-in { from { opacity: .2; transform: translateX(8px); } to { opacity: 1; transform: translateX(0); } }
+    @media (max-width: 850px) { .site-header, main { width: min(100% - 24px, 680px); } .brand-row { align-items: flex-start; flex-direction: column; } .header-note { text-align: left; } .layout { grid-template-columns: 1fr; } .panel, .right-panel { border-radius: 18px; } }
+    @media (max-width: 480px) { .site-header { padding: 17px; } main { width: calc(100% - 24px); } .panel-inner, .right-panel, .results-area { padding: 13px; } .detail-metrics { grid-template-columns: 1fr; } .image-slot { min-height: 190px; } }
+  </style>
 </head>
 <body>
-  <h1>Hello World</h1>
+  <header class="site-header">
+    <div class="brand-row">
+      <div class="brand"><div class="brand-mark">ใบ</div><div><h1>สวนพฤกษศาสตร์ไทย</h1><p>THAI BOTANICAL ATLAS</p></div></div>
+      <div class="header-note">ค้นพบธรรมชาติ<br>ใกล้ตัวคุณ</div>
+    </div>
+  </header>
+  <main>
+    <div class="layout">
+      <aside class="panel" aria-label="เครื่องมือค้นหา">
+        <div class="panel-inner">
+          <h2 class="section-label">ค้นหาสวนพฤกษศาสตร์</h2>
+          <div class="search-wrap">
+            <input id="searchInput" type="search" autocomplete="off" placeholder="พิมพ์ชื่อสวนที่ต้องการค้นหา..." aria-label="ค้นหาชื่อสวน" />
+            <span class="search-icon">⌕</span>
+            <div id="suggestions" class="suggestions"></div>
+          </div>
+          <div class="field"><label for="regionSelect">ภูมิภาค</label><select id="regionSelect"><option value="ทั้งหมด">ทุกภูมิภาค</option></select></div>
+          <div class="field"><label for="popularSelect">เรียงตามความนิยม</label><select id="popularSelect"><option value="none">แสดงทั้งหมด</option><option value="popular">ยอดผู้เข้าชมมากที่สุด</option></select></div>
+          <div class="field"><label for="referenceSelect">คำนวณระยะทางจากสวนอ้างอิง</label><select id="referenceSelect"><option value="">เลือกสวนหรือจังหวัดอ้างอิง</option></select></div>
+          <button id="distanceButton" class="primary-button" type="button">ยืนยันการค้นหาระยะทาง</button>
+          <div class="map-block">
+            <div class="map-art"><div><strong>แผนที่ประเทศไทย</strong><span>พื้นที่สำหรับใส่ภาพแผนที่สีเทาอ่อน</span></div></div>
+            <button id="resetButton" class="clear-button" type="button">ล้างผลการค้นหา</button>
+          </div>
+        </div>
+      </aside>
+      <section class="right-panel" aria-label="ผลลัพธ์และสวนยอดนิยม">
+        <div class="feature">
+          <div class="feature-heading"><span>สวนยอดนิยมจากสถิติผู้เข้าชม ปี 67</span><span id="sourceStatus">กำลังโหลด...</span></div>
+          <div id="featuredSlides"></div>
+          <div id="featuredDots" class="dots"></div>
+        </div>
+        <div class="results-area">
+          <div class="results-heading"><h2>ผลการค้นหา</h2><span id="status">กำลังโหลดข้อมูล...</span></div>
+          <div id="resultGrid" class="result-grid" aria-live="polite"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+  <div id="detailModal" class="modal" role="dialog" aria-modal="true" aria-label="รายละเอียดสวน">
+    <article class="detail-card">
+      <button id="closeModal" class="close-modal" type="button" aria-label="ปิดรายละเอียด">×</button>
+      <div class="video-slot"><div><div class="play-icon">▶</div><div>พื้นที่สำหรับใส่วิดีโอสวนพฤกษศาสตร์</div><small>คลิกปุ่มเล่นเมื่อใส่วิดีโอแล้ว</small></div></div>
+      <div id="detailContent"></div>
+    </article>
+  </div>
+  <script>
+    "use strict";
+    const state = { gardens: [], visible: [], referenceId: "", order: "none", featuredIndex: 0, featuredTimer: null };
+    const regionIds = { north: "1184397a-7abf-4f5a-a528-5b74861c134c", central: "14ef5da4-f002-45b2-95b0-57f6a3395a39", northeast: "f0a7c7ef-6b36-4a27-99b8-f5840ca65050", south: "e0791839-d2d7-4cf2-9e7d-bc1ddfb15138", west: "807b3e4d-2cd2-44bc-8e89-b1acf3ebcf75" };
+    const regionNames = { north: "ภาคเหนือ", central: "ภาคกลาง", northeast: "ภาคตะวันออกเฉียงเหนือ", south: "ภาคใต้", west: "ภาคตะวันตก" };
+
+    // Linear Search: ไล่ตรวจสวนทีละรายการและคืนรายการที่ชื่อมีคำค้น
+    function linearSearch(gardens, query) {
+      const result = [];
+      const keyword = normalizeName(query);
+      for (let index = 0; index < gardens.length; index += 1) {
+        if (keyword === "" || normalizeName(gardens[index].name).indexOf(keyword) !== -1) result.push(gardens[index]);
+      }
+      return result;
+    }
+
+    // Merge Sort: แบ่งข้อมูลเป็นครึ่ง แล้วรวมกลับโดยใช้ key และทิศทางที่กำหนด
+    function mergeSort(items, key, descending) {
+      if (items.length < 2) return items.slice();
+      const middle = Math.floor(items.length / 2);
+      const left = mergeSort(items.slice(0, middle), key, descending);
+      const right = mergeSort(items.slice(middle), key, descending);
+      return merge(left, right, key, descending);
+    }
+
+    // Merge: เปรียบเทียบหัวของสองชุดย่อยแล้วสร้างชุดที่เรียงแล้ว
+    function merge(left, right, key, descending) {
+      const result = [];
+      let leftIndex = 0;
+      let rightIndex = 0;
+      while (leftIndex < left.length && rightIndex < right.length) {
+        const leftValue = Number(left[leftIndex][key]) || 0;
+        const rightValue = Number(right[rightIndex][key]) || 0;
+        const takeLeft = descending ? leftValue >= rightValue : leftValue <= rightValue;
+        result.push(takeLeft ? left[leftIndex++] : right[rightIndex++]);
+      }
+      while (leftIndex < left.length) result.push(left[leftIndex++]);
+      while (rightIndex < right.length) result.push(right[rightIndex++]);
+      return result;
+    }
+
+    // Haversine: แปลงองศาเป็นเรเดียนแล้วคำนวณระยะทางบนผิวโลกเป็นกิโลเมตร
+    function haversine(lat1, lng1, lat2, lng2) {
+      const earthRadius = 6371;
+      const toRadians = (degree) => degree * Math.PI / 180;
+      const deltaLat = toRadians(lat2 - lat1);
+      const deltaLng = toRadians(lng2 - lng1);
+      const first = Math.sin(deltaLat / 2) ** 2 + Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(deltaLng / 2) ** 2;
+      return earthRadius * 2 * Math.atan2(Math.sqrt(first), Math.sqrt(1 - first));
+    }
+
+    // Hash Map: ตัดคำและช่องว่าง แล้วเก็บยอดผู้เข้าชมด้วยชื่อสวนเป็น key
+    function buildVisitorHashMap(records) {
+      const visitorMap = Object.create(null);
+      for (let index = 0; index < records.length; index += 1) {
+        const name = normalizeName(records[index]["หน่วยงาน"]);
+        const total = parseNumber(records[index]["รวมปี 67"]);
+        if (name !== "") visitorMap[name] = total;
+      }
+      return visitorMap;
+    }
+
+    // Normalize: ทำชื่อให้เป็นรูปแบบเดียวกันเพื่อจับคู่ข้อมูลต่างแหล่ง
+    function normalizeName(value) {
+      return String(value || "").toLowerCase().replace(/สวนพฤกษศาสตร์/g, "").replace(/\s+/g, "").trim();
+    }
+
+    // Filter: ไล่เช็คภูมิภาคทีละรายการและเก็บเฉพาะรายการที่ตรงเงื่อนไข
+    function filterByRegion(gardens, region) {
+      if (region === "ทั้งหมด") return gardens.slice();
+      const result = [];
+      for (let index = 0; index < gardens.length; index += 1) if (gardens[index].region === region) result.push(gardens[index]);
+      return result;
+    }
+
+    // แปลงค่าตัวเลขที่อาจมี comma หรือเป็นค่าว่างให้พร้อมใช้คำนวณ
+    function parseNumber(value) { const number = Number(String(value || "").replace(/,/g, "")); return Number.isFinite(number) ? number : 0; }
+
+    // แยก latitude และ longitude ที่ฝังอยู่ใน URL ด้วย regular expression
+    function readCoordinates(url) {
+      const text = String(url || "");
+      const latMatch = text.match(/[?&]lat(?:itude)?=([-+]?\d+(?:\.\d+)?)/i);
+      const lngMatch = text.match(/[?&](?:lng|lon|longitude)=([-+]?\d+(?:\.\d+)?)/i);
+      return { lat: latMatch ? Number(latMatch[1]) : null, lng: lngMatch ? Number(lngMatch[1]) : null };
+    }
+
+    // รวบแถวจากทั้ง 5 resource ให้เป็น object สวนรูปแบบเดียว
+    function createGardens(resources, visitorMap) {
+      const gardens = [];
+      for (const regionKey in regionIds) {
+        const rows = resources[regionIds[regionKey]] || [];
+        for (let index = 0; index < rows.length; index += 1) {
+          const row = rows[index];
+          const coordinates = readCoordinates(row.URL);
+          const name = String(row["ชื่อหน่วยงานภาคสนาม"] || "ไม่ระบุชื่อ").trim();
+          gardens.push({ id: `${regionKey}-${row._id || index}`, name, region: regionNames[regionKey], address: String(row["ที่อยู่"] || "ไม่ระบุที่อยู่"), lat: coordinates.lat, lng: coordinates.lng, visitors: visitorMap[normalizeName(name)] || 0, distance: null });
+        }
+      }
+      return gardens;
+    }
+
+    // วาดการ์ดผลลัพธ์จากข้อมูลที่ผ่าน search/filter/sort แล้ว
+    function render(gardens) {
+      const grid = document.getElementById("resultGrid");
+      grid.innerHTML = "";
+      if (gardens.length === 0) { grid.innerHTML = '<div class="empty">ไม่พบสวนที่ตรงกับเงื่อนไข</div>'; return; }
+      for (let index = 0; index < gardens.length; index += 1) {
+        const garden = gardens[index];
+        const card = document.createElement("article");
+        card.className = "result-card";
+        card.tabIndex = 0;
+        card.innerHTML = `<div class="image-slot"><div><strong>ช่องสำหรับใส่ภาพสวน</strong><span>${escapeHtml(garden.name)}</span></div></div><div class="result-info"><h3>${escapeHtml(garden.name)}</h3><p>${escapeHtml(garden.region)}</p></div>`;
+        card.addEventListener("click", () => openDetails(garden));
+        card.addEventListener("keydown", (event) => { if (event.key === "Enter") openDetails(garden); });
+        grid.appendChild(card);
+      }
+    }
+
+    // วาดสไลด์ 5 สวนที่มียอดผู้เข้าชมสูงสุด โดยเว้นช่องไว้ให้ผู้ใช้ใส่รูปเอง
+    function renderFeatured() {
+      const slides = document.getElementById("featuredSlides");
+      const dots = document.getElementById("featuredDots");
+      const popular = mergeSort(state.gardens, "visitors", true);
+      const topFive = popular.slice(0, 5);
+      slides.innerHTML = "";
+      dots.innerHTML = "";
+      if (topFive.length === 0) { slides.innerHTML = '<div class="slide active"><div class="image-slot">กำลังรอข้อมูลสวนยอดนิยม</div></div>'; return; }
+      for (let index = 0; index < topFive.length; index += 1) {
+        const garden = topFive[index];
+        const slide = document.createElement("div");
+        slide.className = `slide${index === state.featuredIndex ? " active" : ""}`;
+        slide.innerHTML = `<div class="image-slot"><div><strong>ช่องสำหรับใส่ภาพสวนยอดนิยม</strong><span>อันดับ ${index + 1}</span></div></div><div class="slide-caption"><strong>${escapeHtml(garden.name)}</strong><span>${garden.visitors.toLocaleString("th-TH")} คน</span></div>`;
+        slide.addEventListener("click", () => openDetails(garden));
+        slides.appendChild(slide);
+        const dot = document.createElement("button");
+        dot.className = `dot${index === state.featuredIndex ? " active" : ""}`;
+        dot.type = "button";
+        dot.setAttribute("aria-label", `แสดงอันดับ ${index + 1}`);
+        dot.addEventListener("click", () => { state.featuredIndex = index; renderFeatured(); startFeaturedTimer(); });
+        dots.appendChild(dot);
+      }
+    }
+
+    // เปลี่ยนสไลด์อัตโนมัติทุก 4 วินาที และเริ่มตัวจับเวลาใหม่เมื่อผู้ใช้เลือกจุด
+    function startFeaturedTimer() {
+      if (state.featuredTimer) clearInterval(state.featuredTimer);
+      state.featuredTimer = setInterval(() => {
+        const count = document.getElementById("featuredDots").children.length;
+        if (count === 0) return;
+        state.featuredIndex = (state.featuredIndex + 1) % count;
+        renderFeatured();
+      }, 4000);
+    }
+
+    // ป้องกันข้อความจากข้อมูลภายนอกถูกตีความเป็น HTML
+    function escapeHtml(value) { return String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[character])); }
+
+    // ใช้ตัวกรองปัจจุบัน แล้วเลือกอัลกอริทึมเรียงตามปุ่มที่ผู้ใช้กด
+    function updateResults() {
+      let result = linearSearch(state.gardens, document.getElementById("searchInput").value);
+      result = filterByRegion(result, document.getElementById("regionSelect").value);
+      if (state.order === "popular") result = mergeSort(result, "visitors", true);
+      if (state.order === "distance") result = mergeSort(result, "distance", false);
+      state.visible = result;
+      render(result);
+      document.getElementById("status").textContent = `พบ ${result.length} สวน`;
+    }
+
+    // แสดงคำแนะนำชื่อสวนแบบทันทีจากผล Linear Search ขณะผู้ใช้กำลังพิมพ์
+    function renderSuggestions() {
+      const box = document.getElementById("suggestions");
+      const query = document.getElementById("searchInput").value;
+      if (query.trim() === "") { box.classList.remove("is-visible"); box.innerHTML = ""; return; }
+      const matches = linearSearch(state.gardens, query).slice(0, 5);
+      box.innerHTML = "";
+      for (let index = 0; index < matches.length; index += 1) {
+        const button = document.createElement("button");
+        button.className = "suggestion";
+        button.type = "button";
+        button.textContent = matches[index].name;
+        button.addEventListener("click", () => { document.getElementById("searchInput").value = matches[index].name; box.classList.remove("is-visible"); updateResults(); });
+        box.appendChild(button);
+      }
+      box.classList.toggle("is-visible", matches.length > 0);
+    }
+
+    // เปิด modal รายละเอียดสวน พร้อมข้อมูลยอดผู้เข้าชม ระยะทาง และเวลาเดินทางโดยประมาณ
+    function openDetails(garden) {
+      const distance = garden.distance === null || garden.distance === Number.MAX_SAFE_INTEGER ? "ยังไม่คำนวณ" : `${garden.distance.toFixed(1)} กม.`;
+      const hours = garden.distance === null || garden.distance === Number.MAX_SAFE_INTEGER ? "ยังไม่คำนวณ" : `${Math.ceil(garden.distance / 60)} ชม. โดยประมาณ`;
+      document.getElementById("detailContent").innerHTML = `<h2>${escapeHtml(garden.name)}</h2><p>${escapeHtml(garden.region)} · ${escapeHtml(garden.address)}</p><div class="detail-metrics"><div class="detail-metric"><span>ผู้เข้าชม ปี 67</span><strong>${garden.visitors.toLocaleString("th-TH")} คน</strong></div><div class="detail-metric"><span>ระยะทาง</span><strong>${distance}</strong></div><div class="detail-metric"><span>เดินทางโดยรถยนต์</span><strong>${hours}</strong></div></div>`;
+      document.getElementById("detailModal").classList.add("is-open");
+    }
+
+    // ล้าง search, filter และผลการเรียง ให้กลับสู่สถานะเริ่มต้น
+    function resetSearch() {
+      document.getElementById("searchInput").value = "";
+      document.getElementById("regionSelect").value = "ทั้งหมด";
+      document.getElementById("popularSelect").value = "none";
+      document.getElementById("referenceSelect").value = "";
+      state.order = "none";
+      for (let index = 0; index < state.gardens.length; index += 1) state.gardens[index].distance = null;
+      document.getElementById("suggestions").classList.remove("is-visible");
+      updateResults();
+    }
+
+    // คำนวณระยะทางจากสวนอ้างอิงที่เลือก แล้วเรียงด้วย Merge Sort
+    function sortByDistance() {
+      const reference = findById(state.gardens, document.getElementById("referenceSelect").value);
+      if (!reference || reference.lat === null || reference.lng === null) { document.getElementById("status").textContent = "สวนอ้างอิงไม่มีพิกัดใน URL"; return; }
+      for (let index = 0; index < state.gardens.length; index += 1) {
+        const garden = state.gardens[index];
+        garden.distance = garden.lat === null || garden.lng === null ? Number.MAX_SAFE_INTEGER : haversine(reference.lat, reference.lng, garden.lat, garden.lng);
+      }
+      state.order = "distance";
+      updateResults();
+    }
+
+    // ค้นหาสวนจาก id ด้วยการไล่ทีละรายการ
+    function findById(gardens, id) { for (let index = 0; index < gardens.length; index += 1) if (gardens[index].id === id) return gardens[index]; return null; }
+
+    // เติมตัวเลือกภาคและสวนอ้างอิงจากข้อมูลที่โหลดมา
+    function populateChoices() {
+      const regionSelect = document.getElementById("regionSelect");
+      const referenceSelect = document.getElementById("referenceSelect");
+      for (const regionKey in regionNames) { const option = document.createElement("option"); option.value = regionNames[regionKey]; option.textContent = regionNames[regionKey]; regionSelect.appendChild(option); }
+      for (let index = 0; index < state.gardens.length; index += 1) { const option = document.createElement("option"); option.value = state.gardens[index].id; option.textContent = state.gardens[index].name; referenceSelect.appendChild(option); }
+    }
+
+    // โหลดข้อมูลจาก proxy แล้วสร้าง hash map ผู้เข้าชมก่อนแสดงผล
+    async function loadData() {
+      try {
+        const response = await fetch("/api/proxy?resourceId=all");
+        if (!response.ok) throw new Error("โหลดข้อมูลไม่สำเร็จ");
+        const payload = await response.json();
+        const visitors = payload.resources[payload.resourceIds.visitors] || [];
+        state.gardens = createGardens(payload.resources, buildVisitorHashMap(visitors));
+        populateChoices();
+        renderFeatured();
+        startFeaturedTimer();
+        document.getElementById("sourceStatus").textContent = payload.warning || "ข้อมูลล่าสุดจาก data.go.th";
+        updateResults();
+      } catch (error) {
+        document.getElementById("status").textContent = "ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่";
+      }
+    }
+
+    document.getElementById("searchInput").addEventListener("input", () => { renderSuggestions(); updateResults(); });
+    document.getElementById("searchInput").addEventListener("keydown", (event) => { if (event.key === "Enter") { document.getElementById("suggestions").classList.remove("is-visible"); updateResults(); } });
+    document.getElementById("regionSelect").addEventListener("change", updateResults);
+    document.getElementById("distanceButton").addEventListener("click", sortByDistance);
+    document.getElementById("popularSelect").addEventListener("change", (event) => { state.order = event.target.value; updateResults(); });
+    document.getElementById("resetButton").addEventListener("click", resetSearch);
+    document.getElementById("closeModal").addEventListener("click", () => document.getElementById("detailModal").classList.remove("is-open"));
+    document.getElementById("detailModal").addEventListener("click", (event) => { if (event.target.id === "detailModal") event.currentTarget.classList.remove("is-open"); });
+    loadData();
+  </script>
 </body>
 </html>
