@@ -1,3 +1,13 @@
+/*
+สารบัญการทำงานของไฟล์นี้
+1. บรรทัด 15: รายชื่อชุดข้อมูลจาก data.go.th
+2. บรรทัด 25-28: ที่เก็บข้อมูลชั่วคราว และการสร้าง Express
+3. บรรทัด 31: อ่านข้อมูลสำรองจาก backup.json
+4. บรรทัด 42: ขอข้อมูลจาก API และเลือก cache หรือ backup เมื่อ API ล่ม
+5. บรรทัด 64: Express รับคำขอ รวมข้อมูล และส่ง JSON ให้หน้าเว็บ
+6. บรรทัด 101: ส่ง Express ให้ Vercel ใช้งาน
+*/
+
 import fs from "node:fs/promises";
 import path from "node:path";
 import express from "express";

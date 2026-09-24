@@ -110,7 +110,7 @@
           </div>
           <div class="field"><label for="regionSelect">ภูมิภาค</label><select id="regionSelect"><option value="ทั้งหมด">ทุกภูมิภาค</option></select></div>
           <div class="field"><label for="popularSelect">เรียงตามความนิยม</label><select id="popularSelect"><option value="none">แสดงทั้งหมด</option><option value="popular">ยอดผู้เข้าชมมากที่สุด</option></select></div>
-          <div class="field"><label for="referenceSelect">คำนวณระยะทางจากสวนอ้างอิง</label><select id="referenceSelect"><option value="">เลือกสวนหรือจังหวัดอ้างอิง</option></select></div>
+          <div class="field"><label for="referenceSelect">คำนวณระยะทางจากจังหวัด</label><select id="referenceSelect"><option value="">เลือกจังหวัดต้นทาง</option></select></div>
           <button id="distanceButton" class="primary-button" type="button">ยืนยันการค้นหาระยะทาง</button>
           <div class="map-block">
             <div class="map-art"><div><strong>แผนที่ประเทศไทย</strong><span>พื้นที่สำหรับใส่ภาพแผนที่สีเทาอ่อน</span></div></div>
@@ -139,7 +139,99 @@
     </article>
   </div>
   <script>
+
+// ข้อมูลพิกัดตัวแทนของแต่ละจังหวัด ใช้เป็นจุดเริ่มต้นในการคำนวณระยะทาง
+const provinceCoordinates = {
+  กรุงเทพมหานคร: { lat: 13.7563, lng: 100.5018 },
+  กระบี่: { lat: 8.0584, lng: 98.9105 },
+  กาญจนบุรี: { lat: 14.0228, lng: 99.5328 },
+  กาฬสินธุ์: { lat: 16.4353, lng: 103.5061 },
+  กำแพงเพชร: { lat: 16.4828, lng: 99.5227 },
+  ขอนแก่น: { lat: 16.4322, lng: 102.8236 },
+  จันทบุรี: { lat: 12.6111, lng: 102.1139 },
+  ฉะเชิงเทรา: { lat: 13.6904, lng: 101.0779 },
+  ชลบุรี: { lat: 13.3611, lng: 100.9847 },
+  ชัยนาท: { lat: 15.1852, lng: 100.1251 },
+  ชัยภูมิ: { lat: 15.8068, lng: 102.0317 },
+  ชุมพร: { lat: 10.4931, lng: 99.1800 },
+  เชียงราย: { lat: 19.9071, lng: 99.8325 },
+  เชียงใหม่: { lat: 18.7883, lng: 98.9853 },
+  ตรัง: { lat: 7.5563, lng: 99.6114 },
+  ตราด: { lat: 12.2427, lng: 102.5175 },
+  ตาก: { lat: 16.8839, lng: 99.1258 },
+  นครนายก: { lat: 14.2069, lng: 101.2131 },
+  นครปฐม: { lat: 13.8194, lng: 100.0603 },
+  นครพนม: { lat: 17.3920, lng: 104.7695 },
+  นครราชสีมา: { lat: 14.9738, lng: 102.0831 },
+  นครศรีธรรมราช: { lat: 8.4325, lng: 99.9631 },
+  นครสวรรค์: { lat: 15.6987, lng: 100.1197 },
+  นนทบุรี: { lat: 13.8621, lng: 100.5144 },
+  นราธิวาส: { lat: 6.4255, lng: 101.8253 },
+  น่าน: { lat: 18.7831, lng: 100.7816 },
+  บึงกาฬ: { lat: 18.3614, lng: 103.6542 },
+  บุรีรัมย์: { lat: 14.9930, lng: 103.1026 },
+  ปทุมธานี: { lat: 14.0208, lng: 100.5250 },
+  ประจวบคีรีขันธ์: { lat: 11.8206, lng: 99.7958 },
+  ปราจีนบุรี: { lat: 14.0506, lng: 101.3725 },
+  ปัตตานี: { lat: 6.8677, lng: 101.2435 },
+  พระนครศรีอยุธยา: { lat: 14.3475, lng: 100.5647 },
+  พะเยา: { lat: 19.1658, lng: 99.9025 },
+  พังงา: { lat: 8.4411, lng: 98.5255 },
+  พัทลุง: { lat: 7.6167, lng: 100.0750 },
+  พิจิตร: { lat: 16.4421, lng: 100.3488 },
+  พิษณุโลก: { lat: 16.8211, lng: 100.2659 },
+  เพชรบุรี: { lat: 13.1116, lng: 99.9391 },
+  เพชรบูรณ์: { lat: 16.4194, lng: 101.1578 },
+  แพร่: { lat: 18.1446, lng: 100.1403 },
+  ภูเก็ต: { lat: 7.8804, lng: 98.3923 },
+  มหาสารคาม: { lat: 16.1849, lng: 103.2954 },
+  มุกดาหาร: { lat: 16.5434, lng: 104.7144 },
+  แม่ฮ่องสอน: { lat: 19.3021, lng: 97.9654 },
+  ยโสธร: { lat: 15.7956, lng: 104.1453 },
+  ยะลา: { lat: 6.5411, lng: 101.2804 },
+  ร้อยเอ็ด: { lat: 16.0541, lng: 103.6521 },
+  ระนอง: { lat: 9.9658, lng: 98.6348 },
+  ระยอง: { lat: 12.6831, lng: 101.2753 },
+  ราชบุรี: { lat: 13.5283, lng: 99.8134 },
+  ลพบุรี: { lat: 14.7994, lng: 100.6534 },
+  ลำปาง: { lat: 18.2855, lng: 99.4924 },
+  ลำพูน: { lat: 18.5772, lng: 99.0075 },
+  เลย: { lat: 17.4861, lng: 101.7225 },
+  ศรีสะเกษ: { lat: 15.1154, lng: 104.3225 },
+  สกลนคร: { lat: 17.1664, lng: 104.1486 },
+  สงขลา: { lat: 7.1895, lng: 100.5954 },
+  สตูล: { lat: 6.6114, lng: 100.0667 },
+  สมุทรปราการ: { lat: 13.5994, lng: 100.5964 },
+  สมุทรสงคราม: { lat: 13.4114, lng: 100.0025 },
+  สมุทรสาคร: { lat: 13.5475, lng: 100.2744 },
+  สระแก้ว: { lat: 13.8241, lng: 102.0644 },
+  สระบุรี: { lat: 14.5289, lng: 100.9122 },
+  สิงห์บุรี: { lat: 14.8911, lng: 100.3969 },
+  สุโขทัย: { lat: 17.0036, lng: 99.8239 },
+  สุพรรณบุรี: { lat: 14.4744, lng: 100.1222 },
+  สุราษฎร์ธานี: { lat: 9.1382, lng: 99.3217 },
+  สุรินทร์: { lat: 14.8825, lng: 103.4939 },
+  หนองคาย: { lat: 17.8783, lng: 102.7422 },
+  หนองบัวลำภู: { lat: 17.2025, lng: 102.4406 },
+  อ่างทอง: { lat: 14.5894, lng: 100.4553 },
+  อำนาจเจริญ: { lat: 15.8594, lng: 104.6258 },
+  อุดรธานี: { lat: 17.4139, lng: 102.7872 },
+  อุตรดิตถ์: { lat: 17.6255, lng: 100.0992 },
+  อุทัยธานี: { lat: 15.3811, lng: 100.0247 },
+  อุบลราชธานี: { lat: 15.2384, lng: 104.8475 }
+};
+
+
     "use strict";
+    /*
+    สารบัญการทำงานของหน้าเว็บ
+    1. บรรทัด 157: Linear Search และการเทียบตัวอักษรเอง
+    2. บรรทัด 196: Merge Sort และการคัดลอกข้อมูลด้วย loop
+    3. บรรทัด 258, 268, 284: Haversine, Hash Map และ Filter ภูมิภาค
+    4. บรรทัด 339: แสดงผลสวนยอดนิยมและการ์ดผลการค้นหา
+    5. บรรทัด 450: โหลด API และเชื่อมปุ่มบนหน้าเว็บ
+    */
+    // ส่วนที่ 1: เตรียมข้อมูลสวนและสถานะของสิ่งที่ผู้ใช้กำลังเลือก
     const state = { gardens: [], visible: [], referenceId: "", order: "none", featuredIndex: 0, featuredTimer: null };
     const regionIds = { north: "1184397a-7abf-4f5a-a528-5b74861c134c", central: "14ef5da4-f002-45b2-95b0-57f6a3395a39", northeast: "f0a7c7ef-6b36-4a27-99b8-f5840ca65050", south: "e0791839-d2d7-4cf2-9e7d-bc1ddfb15138", west: "807b3e4d-2cd2-44bc-8e89-b1acf3ebcf75" };
     const regionNames = { north: "ภาคเหนือ", central: "ภาคกลาง", northeast: "ภาคตะวันออกเฉียงเหนือ", south: "ภาคใต้", west: "ภาคตะวันตก" };
@@ -414,27 +506,37 @@
       updateResults();
     }
 
-    // คำนวณระยะทางจากสวนอ้างอิงที่เลือก แล้วเรียงด้วย Merge Sort
+    // คำนวณระยะทางจากจังหวัดที่เลือกไปยังสวนทุกแห่ง แล้วเรียงด้วย Merge Sort
     function sortByDistance() {
-      const reference = findById(state.gardens, document.getElementById("referenceSelect").value);
-      if (!reference || reference.lat === null || reference.lng === null) { document.getElementById("status").textContent = "สวนอ้างอิงไม่มีพิกัดใน URL"; return; }
+      // อ่านชื่อจังหวัดต้นทางจาก dropdown
+      const provinceName = document.getElementById("referenceSelect").value;
+      // หาพิกัดของจังหวัดจากข้อมูลที่เตรียมไว้ในหน้าเว็บ
+      const province = provinceCoordinates[provinceName];
+      // ถ้ายังไม่ได้เลือกจังหวัด ให้แจ้งผู้ใช้และหยุดการคำนวณ
+      if (!province) { document.getElementById("status").textContent = "กรุณาเลือกจังหวัดต้นทางก่อน"; return; }
+      // เดินดูสวนทุกแห่งเพื่อคำนวณระยะทางจากจังหวัดต้นทาง
       for (let index = 0; index < state.gardens.length; index += 1) {
+        // หยิบสวนรายการปัจจุบันขึ้นมา
         const garden = state.gardens[index];
-        garden.distance = garden.lat === null || garden.lng === null ? Number.MAX_SAFE_INTEGER : haversine(reference.lat, reference.lng, garden.lat, garden.lng);
+        // ถ้าสวนไม่มีพิกัด ให้ส่งไปท้ายรายการด้วยค่าที่ใหญ่มาก
+        garden.distance = garden.lat === null || garden.lng === null ? Number.MAX_SAFE_INTEGER : haversine(province.lat, province.lng, garden.lat, garden.lng);
       }
+      // บอกระบบว่าครั้งต่อไปต้องเรียงตามระยะทาง
       state.order = "distance";
+      // แสดงผลใหม่โดยใช้ Merge Sort ใน updateResults
       updateResults();
     }
 
     // ค้นหาสวนจาก id ด้วยการไล่ทีละรายการ
     function findById(gardens, id) { for (let index = 0; index < gardens.length; index += 1) if (gardens[index].id === id) return gardens[index]; return null; }
 
-    // เติมตัวเลือกภาคและสวนอ้างอิงจากข้อมูลที่โหลดมา
+    // เติมตัวเลือกภาคและจังหวัดต้นทางสำหรับคำนวณระยะทาง
     function populateChoices() {
       const regionSelect = document.getElementById("regionSelect");
       const referenceSelect = document.getElementById("referenceSelect");
       for (const regionKey in regionNames) { const option = document.createElement("option"); option.value = regionNames[regionKey]; option.textContent = regionNames[regionKey]; regionSelect.appendChild(option); }
-      for (let index = 0; index < state.gardens.length; index += 1) { const option = document.createElement("option"); option.value = state.gardens[index].id; option.textContent = state.gardens[index].name; referenceSelect.appendChild(option); }
+      // เติมรายชื่อจังหวัดทั้งหมดลงใน dropdown ระยะทาง
+      for (const provinceName in provinceCoordinates) { const option = document.createElement("option"); option.value = provinceName; option.textContent = provinceName; referenceSelect.appendChild(option); }
     }
 
     // โหลดข้อมูลจาก proxy แล้วสร้าง hash map ผู้เข้าชมก่อนแสดงผล
