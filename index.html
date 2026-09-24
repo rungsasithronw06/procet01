@@ -111,7 +111,7 @@
           <div class="field"><label for="regionSelect">ภูมิภาค</label><select id="regionSelect"><option value="ทั้งหมด">ทุกภูมิภาค</option></select></div>
           <div class="field"><label for="popularSelect">เรียงตามความนิยม</label><select id="popularSelect"><option value="none">แสดงทั้งหมด</option><option value="popular">ยอดผู้เข้าชมมากที่สุด</option></select></div>
           <div class="field"><label for="referenceSelect">คำนวณระยะทางจากจังหวัด</label><select id="referenceSelect"><option value="">เลือกจังหวัดต้นทาง</option></select></div>
-          <button id="distanceButton" class="primary-button" type="button">ยืนยันการค้นหาระยะทาง</button>
+          <button id="distanceButton" class="primary-button" type="button">ยืนยันตัวกรองทั้งหมด</button>
           <div class="map-block">
             <div class="map-art"><div><strong>แผนที่ประเทศไทย</strong><span>พื้นที่สำหรับใส่ภาพแผนที่สีเทาอ่อน</span></div></div>
             <button id="resetButton" class="clear-button" type="button">ล้างผลการค้นหา</button>
@@ -276,7 +276,7 @@ const provinceCoordinates = {
     }
 
     // Merge Sort: แบ่งข้อมูลเป็นครึ่ง แล้วรวมกลับโดยใช้ key และทิศทางที่กำหนด
-    function mergeSort(items, key, descending) {
+    function mergeSort(items, key, descending, tieKey, tieDescending) {
       // ถ้ามีข้อมูลไม่ถึงสองรายการ ไม่ต้องแบ่งต่อ
       if (items.length < 2) return copyItems(items);
       // หาจุดกึ่งกลางของรายการ
@@ -286,11 +286,11 @@ const provinceCoordinates = {
       // คัดลอกครึ่งขวาด้วย loop ของเราเอง
       const rightItems = copyRange(items, middle, items.length);
       // เรียงครึ่งซ้ายต่อไปจนเหลือรายการเล็ก ๆ
-      const left = mergeSort(leftItems, key, descending);
+      const left = mergeSort(leftItems, key, descending, tieKey, tieDescending);
       // เรียงครึ่งขวาต่อไปจนเหลือรายการเล็ก ๆ
-      const right = mergeSort(rightItems, key, descending);
+      const right = mergeSort(rightItems, key, descending, tieKey, tieDescending);
       // รวมสองฝั่งกลับเป็นรายการที่เรียงแล้ว
-      return merge(left, right, key, descending);
+      return merge(left, right, key, descending, tieKey, tieDescending);
     }
 
     // Copy Range: คัดลอกข้อมูลช่วงที่ต้องการด้วยการไล่ทีละรายการ
@@ -322,14 +322,19 @@ const provinceCoordinates = {
     }
 
     // Merge: เปรียบเทียบหัวของสองชุดย่อยแล้วสร้างชุดที่เรียงแล้ว
-    function merge(left, right, key, descending) {
+    function merge(left, right, key, descending, tieKey, tieDescending) {
       const result = [];
       let leftIndex = 0;
       let rightIndex = 0;
       while (leftIndex < left.length && rightIndex < right.length) {
         const leftValue = Number(left[leftIndex][key]) || 0;
         const rightValue = Number(right[rightIndex][key]) || 0;
-        const takeLeft = descending ? leftValue >= rightValue : leftValue <= rightValue;
+        const primaryEqual = leftValue === rightValue;
+        const leftTieValue = Number(left[leftIndex][tieKey]) || 0;
+        const rightTieValue = Number(right[rightIndex][tieKey]) || 0;
+        const takeLeft = primaryEqual && tieKey
+          ? (tieDescending ? leftTieValue >= rightTieValue : leftTieValue <= rightTieValue)
+          : (descending ? leftValue >= rightValue : leftValue <= rightValue);
         result.push(takeLeft ? left[leftIndex++] : right[rightIndex++]);
       }
       while (leftIndex < left.length) result.push(left[leftIndex++]);
@@ -462,10 +467,13 @@ const provinceCoordinates = {
       let result = linearSearch(state.gardens, document.getElementById("searchInput").value);
       result = filterByRegion(result, document.getElementById("regionSelect").value);
       if (state.order === "popular") result = mergeSort(result, "visitors", true);
-      if (state.order === "distance") result = mergeSort(result, "distance", false);
+      if (state.order === "distance") {
+        const popularSelected = document.getElementById("popularSelect").value === "popular";
+        result = popularSelected ? mergeSort(result, "distance", false, "visitors", true) : mergeSort(result, "distance", false);
+      }
       state.visible = result;
       render(result);
-      document.getElementById("status").textContent = `พบ ${result.length} สวน`;
+      document.getElementById("status").textContent = result.length === 0 ? "ไม่มีผลลัพธ์ที่ตรงกับเงื่อนไข" : `พบ ${result.length} สวน`;
     }
 
     // แสดงคำแนะนำชื่อสวนแบบทันทีจากผล Linear Search ขณะผู้ใช้กำลังพิมพ์
@@ -506,24 +514,24 @@ const provinceCoordinates = {
       updateResults();
     }
 
-    // คำนวณระยะทางจากจังหวัดที่เลือกไปยังสวนทุกแห่ง แล้วเรียงด้วย Merge Sort
-    function sortByDistance() {
+    // รวมเงื่อนไขทั้งสามช่อง แล้วค่อยแสดงผลเมื่อผู้ใช้กดยืนยัน
+    function applyFilters() {
       // อ่านชื่อจังหวัดต้นทางจาก dropdown
       const provinceName = document.getElementById("referenceSelect").value;
-      // หาพิกัดของจังหวัดจากข้อมูลที่เตรียมไว้ในหน้าเว็บ
       const province = provinceCoordinates[provinceName];
-      // ถ้ายังไม่ได้เลือกจังหวัด ให้แจ้งผู้ใช้และหยุดการคำนวณ
-      if (!province) { document.getElementById("status").textContent = "กรุณาเลือกจังหวัดต้นทางก่อน"; return; }
-      // เดินดูสวนทุกแห่งเพื่อคำนวณระยะทางจากจังหวัดต้นทาง
-      for (let index = 0; index < state.gardens.length; index += 1) {
-        // หยิบสวนรายการปัจจุบันขึ้นมา
-        const garden = state.gardens[index];
-        // ถ้าสวนไม่มีพิกัด ให้ส่งไปท้ายรายการด้วยค่าที่ใหญ่มาก
-        garden.distance = garden.lat === null || garden.lng === null ? Number.MAX_SAFE_INTEGER : haversine(province.lat, province.lng, garden.lat, garden.lng);
+      // ถ้าเลือกจังหวัด ให้คำนวณระยะทางของสวนทุกแห่ง
+      if (province) {
+        for (let index = 0; index < state.gardens.length; index += 1) {
+          const garden = state.gardens[index];
+          garden.distance = garden.lat === null || garden.lng === null ? Number.MAX_SAFE_INTEGER : haversine(province.lat, province.lng, garden.lat, garden.lng);
+        }
+      } else {
+        // ถ้าไม่ได้เลือกจังหวัด ให้ล้างระยะทางเพื่อไม่ใช้ค่าค้างจากการค้นหาครั้งก่อน
+        for (let index = 0; index < state.gardens.length; index += 1) state.gardens[index].distance = null;
       }
-      // บอกระบบว่าครั้งต่อไปต้องเรียงตามระยะทาง
-      state.order = "distance";
-      // แสดงผลใหม่โดยใช้ Merge Sort ใน updateResults
+      // ถ้ามีจังหวัดให้เรียงระยะทาง ถ้าไม่มีให้ใช้การเรียงยอดนิยมตาม dropdown
+      state.order = province ? "distance" : document.getElementById("popularSelect").value;
+      // ส่งข้อมูลไปกรองและแสดงผลด้วยเงื่อนไขทั้งหมด
       updateResults();
     }
 
@@ -559,9 +567,7 @@ const provinceCoordinates = {
 
     document.getElementById("searchInput").addEventListener("input", () => { renderSuggestions(); updateResults(); });
     document.getElementById("searchInput").addEventListener("keydown", (event) => { if (event.key === "Enter") { document.getElementById("suggestions").classList.remove("is-visible"); updateResults(); } });
-    document.getElementById("regionSelect").addEventListener("change", updateResults);
-    document.getElementById("distanceButton").addEventListener("click", sortByDistance);
-    document.getElementById("popularSelect").addEventListener("change", (event) => { state.order = event.target.value; updateResults(); });
+    document.getElementById("distanceButton").addEventListener("click", applyFilters);
     document.getElementById("resetButton").addEventListener("click", resetSearch);
     document.getElementById("closeModal").addEventListener("click", () => document.getElementById("detailModal").classList.remove("is-open"));
     document.getElementById("detailModal").addEventListener("click", (event) => { if (event.target.id === "detailModal") event.currentTarget.classList.remove("is-open"); });
